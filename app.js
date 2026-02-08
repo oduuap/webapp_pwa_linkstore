@@ -78,7 +78,52 @@ document.addEventListener('DOMContentLoaded', () => {
     initButtons();
     initScrollAnimations();
     initNotifications();
+
+    // Check if app was just installed (for iOS)
+    checkForNewInstall();
 });
+
+// === DIAGNOSTIC CHECK ON PAGE LOAD ===
+console.log('=== 🔍 PWA Diagnostic Check ===');
+console.log('1. Protocol:', window.location.protocol);
+console.log('2. Is HTTPS:', window.location.protocol === 'https:' || window.location.hostname === 'localhost');
+console.log('3. Hostname:', window.location.hostname);
+console.log('4. Service Worker supported:', 'serviceWorker' in navigator);
+console.log('5. Display mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser');
+console.log('6. localStorage pwaInstalled:', localStorage.getItem('pwaInstalled'));
+console.log('7. User Agent:', navigator.userAgent);
+console.log('================================');
+
+// Check for new install and update buttons
+function checkForNewInstall() {
+    // Listen for page visibility change (when user comes back from adding to home screen)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            console.log('Page became visible - checking install status...');
+
+            // Check if app is now in standalone mode (just installed)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                                window.navigator.standalone === true;
+
+            if (isStandalone) {
+                console.log('App detected in standalone mode - marking as installed');
+                localStorage.setItem('pwaInstalled', 'true');
+            }
+
+            // Update buttons if needed
+            const installBtnAndroid = document.getElementById('installBtnAndroid');
+            const getBtn = document.getElementById('getBtn');
+
+            if (installBtnAndroid) {
+                checkAndUpdateInstallButton(installBtnAndroid);
+            }
+
+            if (getBtn) {
+                checkAndUpdateGetButton(getBtn);
+            }
+        }
+    });
+}
 
 // Detect Device and Show Layout
 function detectDeviceAndShowLayout() {
@@ -522,16 +567,27 @@ function showIOSInstallInstructions() {
                         box-shadow: 0 4px 8px rgba(102,126,234,0.3);
                     ">1</div>
                     <div style="flex: 1; padding-top: 6px;">
-                        <p style="font-size: 17px; line-height: 1.6; color: #000; font-weight: 500;">
-                            Nhấn nút <strong>Share</strong>
+                        <p style="font-size: 17px; line-height: 1.6; color: #000; font-weight: 600; margin-bottom: 10px;">
+                            Nhấn nút <strong style="color: #007AFF;">Share</strong>
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="#007AFF" style="vertical-align: middle; margin: 0 4px;">
                                 <path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V10c0-1.1.9-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"/>
                             </svg>
-                            ở thanh địa chỉ Safari
                         </p>
-                        <p style="font-size: 14px; color: #666; margin-top: 6px;">
-                            (Nút mũi tên hướng lên ở góc trên hoặc thanh dưới)
-                        </p>
+                        <div style="
+                            background: #FFF3CD;
+                            border-left: 4px solid #FFC107;
+                            padding: 12px;
+                            border-radius: 6px;
+                            margin-bottom: 8px;
+                        ">
+                            <p style="font-size: 15px; color: #856404; font-weight: 600; margin-bottom: 4px;">⚠️ QUAN TRỌNG:</p>
+                            <p style="font-size: 14px; color: #856404; line-height: 1.5;">
+                                Nhấn nút Share <strong>(↑)</strong> ở <strong>THANH DƯỚI CÙNG</strong> Safari
+                            </p>
+                            <p style="font-size: 13px; color: #856404; margin-top: 6px;">
+                                ❌ KHÔNG phải nút 3 chấm (⋮) ở góc trên
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -710,21 +766,63 @@ function showIOSInstallInstructions() {
 async function handleAndroidInstall(btn) {
     const originalText = btn.textContent;
 
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        showNotification('Đã cài đặt', 'Ứng dụng đã được thêm vào màn hình chính');
+    // === DEBUG LOGGING ===
+    console.log('=== 🔍 Android Install Debug ===');
+    console.log('1. deferredPrompt available:', !!deferredPrompt);
+    console.log('2. isStandalone:', window.matchMedia('(display-mode: standalone)').matches);
+    console.log('3. navigator.standalone:', window.navigator.standalone);
+    console.log('4. localStorage pwaInstalled:', localStorage.getItem('pwaInstalled'));
+    console.log('5. button dataset.installed:', btn.dataset.installed);
+    console.log('6. Current URL:', window.location.href);
+    console.log('7. Is HTTPS:', window.location.protocol === 'https:');
+    console.log('================================');
+
+    // Check if already installed via localStorage or standalone mode
+    const isInstalled = localStorage.getItem('pwaInstalled') === 'true' ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+
+    if (isInstalled) {
+        console.log('✅ App already installed - redirecting to game...');
+        btn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10" opacity="0.3"/>
+            </svg>
+            Đang tải...
+        `;
+        setTimeout(() => {
+            window.location.href = 'https://m.new88ok1.com';
+        }, 500);
         return;
     }
 
-    // Try to use deferred prompt
-    if (deferredPrompt) {
-        btn.textContent = '⏳';
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
+    // MUST have deferredPrompt to install
+    if (!deferredPrompt) {
+        console.error('❌ Install prompt NOT available!');
+        console.error('Cannot install because beforeinstallprompt event did not fire.');
+        console.error('Possible reasons:');
+        console.error('1. App already installed (check home screen)');
+        console.error('2. Not HTTPS');
+        console.error('3. Manifest.json has errors');
+        console.error('4. Service Worker not registered');
+        console.error('5. PWA criteria not met');
 
-        try {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
+        // Don't show notification - just log error
+        btn.textContent = originalText;
+        return;
+    }
+
+    // Call install prompt immediately
+    console.log('✅ Calling install prompt...');
+    btn.textContent = '⏳';
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+
+    try {
+        // Show install prompt
+        await deferredPrompt.prompt();
+
+        // Wait for user choice
+        const { outcome } = await deferredPrompt.userChoice;
 
             if (outcome === 'accepted') {
                 // IMMEDIATELY set installed state to prevent re-clicks
@@ -764,17 +862,11 @@ async function handleAndroidInstall(btn) {
                 btn.style.opacity = '1';
             }
 
-            deferredPrompt = null;
-        } catch (error) {
-            console.error('Install error:', error);
-            btn.textContent = originalText;
-            btn.disabled = false;
-            btn.style.opacity = '1';
-        }
-    } else {
-        // No deferred prompt - just show notification
-        showNotification('Cài đặt ứng dụng', 'Nhấn menu (⋮) → Thêm vào màn hình chính');
+        // Clear deferredPrompt
+        deferredPrompt = null;
 
+    } catch (error) {
+        console.error('❌ Install error:', error);
         btn.textContent = originalText;
         btn.disabled = false;
         btn.style.opacity = '1';
@@ -786,16 +878,23 @@ async function handleAndroidInstall(btn) {
 
 // Share Handler (iOS style)
 async function handleShare() {
+    // Haptic feedback
+    if (navigator.vibrate) {
+        navigator.vibrate([10, 50, 10]);
+    }
+
+    // On iOS, show instructions to use Safari's share button
+    if (isIOS()) {
+        showIOSShareInstructions();
+        return;
+    }
+
+    // On Android/Desktop, use normal share
     const shareData = {
         title: 'NEW88 - OKVIP ALIANCE',
         text: 'Tải app NEW88 ngay! Đăng ký nhận 58K miễn phí!',
         url: window.location.href
     };
-
-    // Haptic feedback
-    if (navigator.vibrate) {
-        navigator.vibrate([10, 50, 10]);
-    }
 
     try {
         if (navigator.share) {
@@ -806,8 +905,6 @@ async function handleShare() {
             if (navigator.clipboard) {
                 await navigator.clipboard.writeText(shareData.url);
                 showNotification('Đã sao chép', 'Link đã được sao chép');
-            } else {
-                showIOSActionSheet(shareData);
             }
         }
     } catch (error) {
@@ -815,6 +912,114 @@ async function handleShare() {
             console.error('Share error:', error);
         }
     }
+}
+
+// Show iOS Share Instructions
+function showIOSShareInstructions() {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: fadeIn 0.3s ease-out;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 20px;
+            padding: 32px 24px;
+            max-width: 380px;
+            width: 100%;
+            text-align: center;
+            animation: scaleIn 0.3s ease-out;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        ">
+            <!-- Icon -->
+            <div style="
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 20px;
+                background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 8px 24px rgba(0,122,255,0.4);
+            ">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                    <path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V10c0-1.1.9-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"/>
+                </svg>
+            </div>
+
+            <!-- Title -->
+            <h2 style="
+                font-size: 24px;
+                font-weight: 700;
+                color: #000;
+                margin-bottom: 16px;
+                line-height: 1.3;
+            ">Để thêm vào màn hình</h2>
+
+            <!-- Description -->
+            <p style="
+                font-size: 16px;
+                color: #666;
+                line-height: 1.6;
+                margin-bottom: 24px;
+            ">
+                Nhấn nút <strong style="color: #007AFF;">Share (↑)</strong> của Safari
+            </p>
+
+            <!-- Instruction -->
+            <div style="
+                background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+                color: white;
+                padding: 20px;
+                border-radius: 16px;
+                margin-bottom: 24px;
+                text-align: left;
+            ">
+                <div style="font-weight: 700; font-size: 17px; margin-bottom: 12px; text-align: center;">📱 Hướng dẫn:</div>
+                <div style="font-size: 15px; line-height: 1.8;">
+                    1️⃣ Nhấn nút <strong>3 chấm (⋮)</strong> ở góc dưới Safari<br>
+                    2️⃣ Chọn <strong>Share</strong><br>
+                    3️⃣ Cuộn xuống tìm <strong>"Add to Home Screen"</strong><br>
+                    4️⃣ Nhấn <strong>Add</strong>
+                </div>
+            </div>
+
+            <!-- Close button -->
+            <button onclick="this.closest('div').closest('div').remove()" style="
+                width: 100%;
+                padding: 16px;
+                background: #f2f2f7;
+                color: #007AFF;
+                border: none;
+                border-radius: 12px;
+                font-size: 17px;
+                font-weight: 600;
+                cursor: pointer;
+            ">Đã hiểu</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close on click outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
 }
 
 // iOS Action Sheet (Fallback)
@@ -1353,11 +1558,31 @@ console.log('User Agent:', navigator.userAgent);
 
 // PWA Install prompt
 let deferredPrompt;
+let promptEventFired = false;
+
 window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('🎉 beforeinstallprompt event fired!');
     e.preventDefault();
     deferredPrompt = e;
-    console.log('PWA install prompt available');
+    promptEventFired = true;
+    console.log('✅ PWA install prompt captured and ready');
+    console.log('deferredPrompt object:', deferredPrompt);
 });
+
+// Check if prompt event fires within 5 seconds
+setTimeout(() => {
+    if (!promptEventFired) {
+        console.warn('⚠️ beforeinstallprompt event DID NOT fire after 5 seconds');
+        console.warn('This means PWA install criteria are NOT met:');
+        console.warn('1. Check if site is HTTPS (required for PWA)');
+        console.warn('2. Check if manifest.json is valid and served correctly');
+        console.warn('3. Check if service worker registered successfully');
+        console.warn('4. Check if app is already installed');
+        console.warn('5. Try on a different device/browser');
+    } else {
+        console.log('✅ beforeinstallprompt event fired successfully');
+    }
+}, 5000);
 
 // Listen for app installed event
 window.addEventListener('appinstalled', (e) => {

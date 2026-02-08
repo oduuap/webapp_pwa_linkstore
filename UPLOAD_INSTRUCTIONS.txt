@@ -1,11 +1,15 @@
 ===========================================
-HƯỚNG DẪN UPLOAD LÊN VPS - QUAN TRỌNG
+HƯỚNG DẪN UPLOAD LÊN VPS - CẬP NHẬT MỚI
 ===========================================
 
+ĐÃ THÊM DEBUG LOGS ĐỂ TÌM LỖI ANDROID!
+
+===========================================
 PHẢI UPLOAD 3 FILES SAU:
+===========================================
 1. index.html (có auto-redirect code)
-2. app.js (có "CHƠI NGAY" button logic)  
-3. service-worker.js (cache v2)
+2. app.js (có debug logs mới + logic "CHƠI NGAY")
+3. service-worker.js (cache v6 - MỚI!)
 
 ===========================================
 LỆNH UPLOAD (thay đổi user@server):
@@ -16,45 +20,121 @@ scp /Users/mac/Documents/webapp/app.js user@echotiles.xyz:/path/to/webroot/
 scp /Users/mac/Documents/webapp/service-worker.js user@echotiles.xyz:/path/to/webroot/
 
 ===========================================
-SAU KHI UPLOAD - PHẢI LÀM:
+SAU KHI UPLOAD - KIỂM TRA DEBUG LOGS:
 ===========================================
 
-1. UNINSTALL APP CŨ:
-   - Android: Settings → Apps → NEW88 → Uninstall
-   - Hoặc long press icon → Uninstall
-
-2. CLEAR CACHE:
-   - Chrome → Settings → Privacy → Clear browsing data
-   - Chọn: Cached images and files
-
-3. CLEAR SERVICE WORKER:
+1. MỞ TRANG TRÊN ANDROID:
    - Vào https://echotiles.xyz/
-   - F12 → Application → Service Workers → Unregister
 
-4. HARD REFRESH:
-   - Ctrl + Shift + R
+2. MỞ CONSOLE (F12 trên Desktop, hoặc Remote Debug):
+   - Android Chrome: chrome://inspect trên máy tính
+   - Kết nối điện thoại qua USB
+   - Click "Inspect" bên dưới trang web
+
+3. CHECK CÁC LOG SAU:
+   ✅ "🔍 PWA Diagnostic Check" - Hiện khi vào trang
+   ✅ "🎉 beforeinstallprompt event fired!" - Phải có log này
+   ✅ "✅ PWA install prompt captured" - Phải có log này
+
+   ❌ NẾU THẤY: "⚠️ beforeinstallprompt event DID NOT fire"
+      → PWA chưa đủ điều kiện cài đặt!
+      → Đọc các lý do trong console
+
+4. NHẤN NÚT "Cài đặt nhanh":
+   - Sẽ hiện log "🔍 Android Install Debug"
+   - Check từng dòng:
+     • deferredPrompt available: phải là TRUE
+     • isStandalone: phải là FALSE (chưa cài)
+     • Is HTTPS: phải là TRUE
+
+   - NẾU deferredPrompt là FALSE:
+     → Check console xem lý do (có 6 lý do có thể)
 
 ===========================================
-FLOW SAU KHI UPLOAD ĐÚNG:
+CÁC VẤN ĐỀ THƯỜNG GẶP VÀ CÁCH FIX:
 ===========================================
 
-1. Nhấn "Cài đặt nhanh"
-2. Install prompt của Chrome hiện ra
-3. Accept
-4. Thấy "✓ Đang cài đặt..."
-5. Sau 2s → "▶ CHƠI NGAY" (màu xanh lá)
-6. Nhấn "CHƠI NGAY" → Redirect đến m.new88ok1.com
-7. Mở app từ màn hình → Auto redirect đến m.new88ok1.com
+VẤN ĐỀ 1: "beforeinstallprompt không fire"
+NGUYÊN NHÂN:
+- VPS chưa có HTTPS → Phải có SSL certificate
+- manifest.json bị lỗi hoặc không load được
+- Service Worker chưa đăng ký thành công
+- App đã được cài đặt rồi
+
+CÁCH FIX:
+- Check https://echotiles.xyz/ có HTTPS không (khóa xanh)
+- Vào DevTools → Application → Manifest (check lỗi)
+- Vào DevTools → Application → Service Workers (phải thấy "webapp-cache-v6")
+
+---
+
+VẤN ĐỀ 2: "App đã cài nhưng nút vẫn hiện 'Cài đặt'"
+NGUYÊN NHÂN:
+- localStorage.pwaInstalled chưa được set
+- Cache cũ chưa clear
+
+CÁCH FIX:
+- Mở Console, gõ: localStorage.setItem('pwaInstalled', 'true')
+- Refresh trang (Ctrl+Shift+R)
+
+---
+
+VẤN ĐỀ 3: "Nhấn cài đặt hiện thông báo menu 3 chấm"
+NGUYÊN NHÂN:
+- deferredPrompt = null
+- beforeinstallprompt event không fire
+
+CÁCH FIX:
+- Check console logs (xem phần "SAU KHI UPLOAD" ở trên)
+- Gỡ cài app nếu đã cài: Settings → Apps → NEW88 → Uninstall
+- Clear tất cả cache
+- Thử lại
 
 ===========================================
-DEBUG NẾU VẪN LỖI:
+FLOW ĐÚNG SAU KHI FIX:
 ===========================================
 
-Mở Console (F12) và check:
-- "PWA install prompt available" ← Phải có log này
-- "Button clicked, installed state: true" ← Khi click
-- "App installed, redirecting to game..." ← Khi redirect
+ANDROID:
+1. Vào https://echotiles.xyz/
+2. Console hiện: "🎉 beforeinstallprompt event fired!"
+3. Nhấn "Cài đặt nhanh"
+4. Console hiện: "✅ Install prompt available"
+5. Chrome install prompt hiện ra
+6. Accept → Thấy "✓ Đang cài đặt..."
+7. Sau 2s → "▶ CHƠI NGAY" (màu xanh lá)
+8. Nhấn "CHƠI NGAY" → Redirect đến m.new88ok1.com
+9. Mở app từ màn hình → Auto redirect đến m.new88ok1.com
 
-Nếu thấy log "OPEN" thay vì "CHƠI NGAY" → VPS VẪN CODE CŨ!
+IOS:
+1. Vào https://echotiles.xyz/ (Safari)
+2. Nhấn nút "Get"
+3. Hiện hướng dẫn tiếng Việt:
+   - Nhấn nút 3 chấm (⋮) ở góc dưới Safari
+   - Chọn Share
+   - CUỘN XUỐNG tìm "Add to Home Screen"
+   - Nhấn Add
+4. Quay lại web → Nút đổi thành "CHƠI"
+5. Mở app từ màn hình → Auto redirect đến m.new88ok1.com
+
+===========================================
+DEBUG REMOTE TRÊN ANDROID (NẾU CẦN):
+===========================================
+
+1. Bật Developer Mode trên Android:
+   - Settings → About phone
+   - Nhấn "Build number" 7 lần
+
+2. Bật USB Debugging:
+   - Settings → Developer options
+   - Bật "USB debugging"
+
+3. Kết nối điện thoại với máy tính qua USB
+
+4. Mở Chrome trên máy tính:
+   - Vào chrome://inspect
+   - Chọn điện thoại
+   - Mở https://echotiles.xyz/ trên điện thoại
+   - Click "Inspect" trên máy tính
+   - Xem Console logs
 
 ===========================================
