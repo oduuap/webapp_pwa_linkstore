@@ -1,0 +1,60 @@
+===========================================
+HƯỚNG DẪN UPLOAD LÊN VPS - QUAN TRỌNG
+===========================================
+
+PHẢI UPLOAD 3 FILES SAU:
+1. index.html (có auto-redirect code)
+2. app.js (có "CHƠI NGAY" button logic)  
+3. service-worker.js (cache v2)
+
+===========================================
+LỆNH UPLOAD (thay đổi user@server):
+===========================================
+
+scp /Users/mac/Documents/webapp/index.html user@echotiles.xyz:/path/to/webroot/
+scp /Users/mac/Documents/webapp/app.js user@echotiles.xyz:/path/to/webroot/
+scp /Users/mac/Documents/webapp/service-worker.js user@echotiles.xyz:/path/to/webroot/
+
+===========================================
+SAU KHI UPLOAD - PHẢI LÀM:
+===========================================
+
+1. UNINSTALL APP CŨ:
+   - Android: Settings → Apps → NEW88 → Uninstall
+   - Hoặc long press icon → Uninstall
+
+2. CLEAR CACHE:
+   - Chrome → Settings → Privacy → Clear browsing data
+   - Chọn: Cached images and files
+
+3. CLEAR SERVICE WORKER:
+   - Vào https://echotiles.xyz/
+   - F12 → Application → Service Workers → Unregister
+
+4. HARD REFRESH:
+   - Ctrl + Shift + R
+
+===========================================
+FLOW SAU KHI UPLOAD ĐÚNG:
+===========================================
+
+1. Nhấn "Cài đặt nhanh"
+2. Install prompt của Chrome hiện ra
+3. Accept
+4. Thấy "✓ Đang cài đặt..."
+5. Sau 2s → "▶ CHƠI NGAY" (màu xanh lá)
+6. Nhấn "CHƠI NGAY" → Redirect đến m.new88ok1.com
+7. Mở app từ màn hình → Auto redirect đến m.new88ok1.com
+
+===========================================
+DEBUG NẾU VẪN LỖI:
+===========================================
+
+Mở Console (F12) và check:
+- "PWA install prompt available" ← Phải có log này
+- "Button clicked, installed state: true" ← Khi click
+- "App installed, redirecting to game..." ← Khi redirect
+
+Nếu thấy log "OPEN" thay vì "CHƠI NGAY" → VPS VẪN CODE CŨ!
+
+===========================================
